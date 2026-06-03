@@ -1,34 +1,20 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فال حافظ | تست امن</title>
-    <style>
-        body {
-            background: #0a0a0c;
-            color: #D4AF37;
-            font-family: Tahoma, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            direction: rtl;
-            text-align: center;
-        }
-        .msg {
-            background: rgba(15,15,20,0.9);
-            border: 1px solid #D4AF37;
-            border-radius: 20px;
-            padding: 30px;
-        }
-    </style>
+    <title>تست اشعار</title>
 </head>
-<body>
-    <div class="msg">
-        <h1>✅ اتصال امن برقرار شد</h1>
-        <p>اگر این متن را می‌بینید، مشکل از کدهای قبلی بوده است.</p>
-    </div>
+<body style="background:#0a0a0c; color:#D4AF37; text-align:center; padding-top:50px;">
+    <h1>در حال تست...</h1>
+    <div id="result"></div>
+    <script src="poems/poems.js"></script>
+    <script>
+        if (typeof poems !== 'undefined' && poems.length > 0) {
+            document.getElementById('result').innerHTML = 
+                '✅ تعداد اشعار: ' + poems.length + '<br>نمونه: ' + poems[0].verse.split('\n')[0];
+        } else {
+            document.getElementById('result').innerText = '❌ اشعار بارگذاری نشد!';
+        }
+    </script>
 </body>
 </html>
