@@ -1,20 +1,266 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تست اشعار</title>
-</head>
-<body style="background:#0a0a0c; color:#D4AF37; text-align:center; padding-top:50px;">
-    <h1>در حال تست...</h1>
-    <div id="result"></div>
-    <script src="poems/poems.js"></script>
-    <script>
-        if (typeof poems !== 'undefined' && poems.length > 0) {
-            document.getElementById('result').innerHTML = 
-                '✅ تعداد اشعار: ' + poems.length + '<br>نمونه: ' + poems[0].verse.split('\n')[0];
-        } else {
-            document.getElementById('result').innerText = '❌ اشعار بارگذاری نشد!';
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فال حافظ | Samisaki</title>
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --gold: #D4AF37;
+            --gold-light: #FEF0C0;
+            --card-bg: rgba(15, 15, 20, 0.9);
         }
-    </script>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            font-family: 'Tahoma', 'Georgia', serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            direction: rtl;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .particles {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+        }
+        .particle {
+            position: absolute; border-radius: 50%;
+            background: var(--gold-light);
+            box-shadow: 0 0 10px var(--gold), 0 0 20px var(--gold);
+            animation: floatUp 8s infinite ease-in-out; opacity: 0.7;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 0.7; }
+            50% { opacity: 1; transform: translateY(-25px) scale(1.3); }
+            100% { transform: translateY(0) scale(1); opacity: 0.7; }
+        }
+        .card {
+            position: relative; z-index: 1;
+            background: var(--card-bg); backdrop-filter: blur(20px);
+            border: 1px solid rgba(212,175,55,0.4); border-radius: 36px;
+            padding: 50px 30px 40px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.7), 0 0 40px rgba(212,175,55,0.3);
+            text-align: center; max-width: 650px; width: 100%;
+            display: flex; flex-direction: column; align-items: center; gap: 35px;
+        }
+        .title {
+            font-size: 2.5rem; color: var(--gold);
+            text-shadow: 0 0 20px rgba(212,175,55,0.5); letter-spacing: 2px; font-weight: bold;
+        }
+        .btn-group {
+            display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%;
+        }
+        .btn {
+            background: rgba(212,175,55,0.08); border: 2px solid var(--gold);
+            color: var(--gold); font-family: inherit; font-weight: bold;
+            font-size: 1.25rem; padding: 16px 24px; border-radius: 50px;
+            cursor: pointer; transition: all 0.3s ease;
+            width: 85%; max-width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            letter-spacing: 0.5px; position: relative; overflow: hidden;
+        }
+        .btn::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(212,175,55,0.15), transparent);
+            transition: transform 0.3s; transform: translateX(-100%);
+        }
+        .btn:hover::before { transform: translateX(100%); }
+        .btn:hover {
+            background: var(--gold); color: #0a0a0c;
+            box-shadow: 0 0 35px var(--gold); transform: translateY(-3px);
+        }
+        .btn:active { transform: scale(0.96); }
+        .suggestion { font-size: 1.6rem; color: var(--gold-light); margin: 20px 0; min-height: 60px; }
+        .poem-text { font-size: 1.5rem; font-weight: 400; line-height: 2.2; color: var(--gold-light); text-shadow: 0 0 8px rgba(212,175,55,0.3); white-space: pre-line; }
+        .meaning-text { font-size: 1.1rem; color: #ccc; line-height: 2; border-top: 1px solid rgba(212,175,55,0.4); padding-top: 20px; margin-top: 10px; }
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            z-index: 100; display: none; justify-content: center; align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg); border: 1px solid var(--gold);
+            border-radius: 24px; padding: 30px; max-width: 500px; width: 90%;
+            max-height: 80vh; overflow-y: auto; color: var(--gold-light);
+            text-align: center;
+        }
+        .modal-content h3 { color: var(--gold); margin-bottom: 20px; }
+        .history-item { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 15px 0; }
+        .close-btn { margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="particles" id="particlesContainer"></div>
+
+<div class="card" id="mainCard">
+    <div class="title">📜 فال حافظ</div>
+    <div id="step1">
+        <div class="btn-group">
+            <button class="btn" id="newFalBtn">✨ فال جدید</button>
+            <button class="btn" id="historyBtn">📋 فال‌های گذشته</button>
+        </div>
+    </div>
+    <div id="step2" style="display:none;">
+        <div class="suggestion">فال خود را انتخاب کنید:</div>
+        <div class="btn-group">
+            <button class="btn" id="romanticBtn">💖 عاشقانه</button>
+            <button class="btn" id="dailyBtn">🌿 روزمره</button>
+            <button class="btn" id="backBtn1">🔙 بازگشت</button>
+        </div>
+    </div>
+    <div id="step3" style="display:none;">
+        <div class="suggestion" id="verseHint">... نیت کنید و ضربه بزنید</div>
+        <div class="btn-group">
+            <button class="btn" id="revealBtn">✨ نیت کردم</button>
+            <button class="btn" id="backBtn2">🔙 بازگشت</button>
+        </div>
+    </div>
+    <div id="step4" style="display:none;">
+        <div class="poem-text" id="poemDisplay"></div>
+        <div class="meaning-text" id="meaningDisplay"></div>
+        <div class="btn-group">
+            <button class="btn" id="newSearchBtn">🔄 فال دوباره</button>
+            <button class="btn" id="homeBtn">🏠 خانه</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="historyModal">
+    <div class="modal-content">
+        <h3>📜 فال‌های گذشته</h3>
+        <div id="historyList"></div>
+        <button class="btn close-btn" id="closeModalBtn">بستن</button>
+    </div>
+</div>
+
+<script>
+    // ========== ۴۰ شعر کامل (۲۰ عاشقانه + ۲۰ روزمره) ==========
+    const poems = [
+        // عاشقانه (۱ تا ۲۰)
+        { verse: "دوش دیدم که ملائک در میخانه زدند\nگل آدم بسرشتند و به پیمانه زدند\nساقیا می ده که در میکده رندان همه\nجز به عشق تو ندارند سر سجاده زدند\nبلبل از فیض گل آموخت سخن ور نه نبود\nاین همه قندیل سخن که به پروانه زدند\nیوسف گمشده بازآید به کنعان غم مخور\nکلبه احزان شود روزی گلستان غم مخور", meaning: "فال شما از تحولی بزرگ در عشق خبر می‌دهد. فرشتگان عشق را با سرشت انسان آمیخته‌اند. به زودی یوسف گمشده‌تان بازمی‌گردد و غم‌هایتان به شادی تبدیل می‌شود.", category: "romantic" },
+        { verse: "رسید مژده که ایام غم نخواهد ماند\nچنان نماند و چنین نیز هم نخواهد ماند\nنفس باد صبا مشک فشان خواهد شد\nعالم پیر دگر باره جوان خواهد شد\nبلبل از شوق گل افسانه‌ها می‌خواند\nکه زمستان برود باغ خزان نخواهد ماند\nتو مرا گو که چه شد یار و چه شد دلبر ما\nکه چنین سوخته و زار و نوان خواهد ماند", meaning: "فال شما بشارت‌دهندهٔ پایان دوران سخت است. نسیم تغییر، جهان وجودتان را دوباره جوان می‌کند. آن دلبر دور شده بازخواهد گشت و سرمای بی‌مهری جای خود را به گرمای عشق می‌دهد.", category: "romantic" },
+        { verse: "ای پادشه خوبان داد از غم تنهایی\nدل بی تو به جان آمد وقت است که بازآیی\nدایم گل این بستان شاداب نمی‌ماند\nدریاب ضعیفان را در وقت توانایی\nصد باد صبا اینجا با سلسله می‌رقصند\nاین است حریف من تا صبح که بنمایی\nای دوست دل حافظ با درد همی‌سازد\nیا رب برسان یاری کز درد رهاش سازد", meaning: "فال شما از دلتنگی عمیق خبر می‌دهد. معشوق در حال بازگشت است. بادهای صبا گیسوان یار را به رقص درآورده‌اند و این نشانهٔ وصال نزدیک است. به زودی یاری از راه می‌رسد که شما را از این رنج تنهایی می‌رهاند.", category: "romantic" },
+        { verse: "بیا که قصر امل سخت سست بنیاد است\nبیار باده که بنیاد عمر بر باد است\nغلام همت آنم که زیر چرخ کبود\nز هر چه رنگ تعلق پذیرد آزاد است\nبه نقد عمر غنیمت شمر که این سرمایه\nچو برق در گذرد، لحظه‌ای و ناچیز است\nحدیث عشق ز دفتر بخوان که این افسانه\nبرای خاطر ما قصه‌ای دل‌انگیز است", meaning: "فال شما به ناپایداری آرزوها و ارزش لحظات حال اشاره دارد. آزادگی پیشه کنید و از تعلقات رها شوید. عمر کوتاه است، پس از عشق لذت ببرید که این افسانه دل‌انگیز است.", category: "romantic" },
+        { verse: "وفا کنیم و ملامت کشیم و خوش باشیم\nکه در طریقت ما کافری است رنجیدن\nبه تیغ و طعن رقیبان چه باکمان آن به\nکه پیش اهل محبت همینم و بس\nبسوخت حافظ و در شرط عشقبازی او\nهنوز بر سر عهد و وفای خویش است\nمکن که پشت کند دوست از تو بر داغی\nکه دوست به ز دو صد دشمن و صد کس باشد", meaning: "فال شما به ارزش وفاداری در عشق اشاره دارد. ملامت دیگران را بپذیرید و شاد باشید. از طعنه‌ها نهراسید. یک دوست بهتر از صد دشمن است. بر سر عهد خود بمانید.", category: "romantic" },
+        { verse: "مرده بودم زنده شدم گریه بودم خنده شدم\nدولت عشق آمد و من دولت پاینده شدم\nدوش دیوانه شدم عشق مرا دید و بگفت\nآمدم نعره مزن جامه مدر هیچ مگو\nگفتم ای عشق من از چیز دگر می‌ترسم\nگفت آن چیز دگر نیست دگر هیچ مگو\nمن به گوش تو سخن‌های نهان خواهم گفت\nسر بجنبان که بلی جز که به سر هیچ مگو", meaning: "فال شما از تولدی دوباره در پرتو عشق خبر می‌دهد. عشق معجزه‌آسا وارد می‌شود و شما را از مرگ به زندگی می‌رساند. به ندای درون اعتماد کنید.", category: "romantic" },
+        { verse: "صبا وقت سحر بویی ز زلف یار می‌آورد\nدل شوریده ما را به بو در کار می‌آورد\nمن آن شکل صنوبر را ز باغ دیده برکندم\nکه هر گل کز غمش بشکفت محنت بار می‌آورد\nفروغ ماه می‌دیدم ز بام قصر او روشن\nکه رو از شرم آن خورشید در دیوار می‌آورد\nز بیم غارت عشقش دل پرخون رها کردم\nولی می‌ریخت خون و رحم بر این کار می‌آورد", meaning: "فال شما از رسیدن خبری خوش از سوی معشوق حکایت دارد. نسیم سحرگاهی عطر یار را می‌آورد. از عشق نترسید که این بار رحم و شفقت در راه است.", category: "romantic" },
+        { verse: "دلم رمیده شد و غافلم من درویش\nکه آن شکاری سرگشته را چه آمد پیش\nبه ناز و غمزه چه حاجت که دل ز ما ببری\nتو خود ز هر نگهی دلبری و غارتگر\nمن از کجا و غم عشق از کجا و این دل زار\nکه در قفس نتوان داشت طایران را\nمده فریبم و گویم که دل ز مهر بشوی\nکه مهر پاک نیاید برون ز طبع بشر", meaning: "فال شما از آشفتگی و سرگشتگی در عشق خبر می‌دهد. نمی‌توان دل را در قفس نگه داشت. عشق طبع بشر است. این سرگشتگی مقدمهٔ آرامش است.", category: "romantic" },
+        { verse: "فریاد که آن ساقی شکرلب سرمست\nدانست که من باده پرستم نپرستید\nدر میکده رندان همه در حال پرستش\nمن در طلب ساقی و او مست نپرستید\nهر ناله که از دل برود بر سر کویش\nدانم که ز دل می‌رود و باز نیاید\nگر باده خوری با من ای دوست بگو تا\nکاین دین و خرد را همگی در سرت آید", meaning: "فال شما از عشقی بی‌پاسخ حکایت دارد. معشوق بی‌اعتناست. گاهی باید رها کنید. اگر کسی قدر شما را نداند، ارزش رنج کشیدن ندارد.", category: "romantic" },
+        { verse: "مژده ای دل که دگر باره بهار آمد و خوش\nسبزه‌ها رست و گل و سنبل و ریحان آمد\nنوبهار آمد و آورد گل و یاسمنا\nباغبانا ز چه رو باغ چو خلدت زینا\nباد نوروز وزیدن ز سر زلف نگار\nکه ز فیضش همه عالم شود از سر برنا\nای گل خوشبوی اگر چند ز ما دور شوی\nهمه جا بوی تو دارم که صبا عنبرسا", meaning: "فال شما از فرا رسیدن بهاری روح‌نواز در عشق خبر می‌دهد. شخصی مانند نسیم وارد زندگی‌تان می‌شود. اگرچه دور باشد، عطر وجودش همراهتان است.", category: "romantic" },
+        { verse: "ای فروغ ماه حسن از روی رخشان شما\nآب روی خوبی از چاه زنخدان شما\nعزم دیدار تو دارد جان بر لب آمده\nبازگردد یا برآید چیست فرمان شما\nکس به دور نرگست طرفی نبست از عافیت\nبه که نفروشند مستوری به مستان شما\nای نسیم صبحگاهی آگهی از یار کو\nکز غم هجران شما شد دیدهٔ ما خون شما", meaning: "فال شما از جذابیت خیره‌کنندهٔ معشوقی سخن می‌گوید. دلتان برای دیدار او پر می‌زند. این انتظار به زودی پایان می‌پذیرد.", category: "romantic" },
+        { verse: "نفس باد صبا مشک فشان خواهد شد\nعالم پیر دگر باره جوان خواهد شد\nارغوان جام عقیقی به سمن خواهد داد\nچشم نرگس به شقایق نگران خواهد شد\nاین تطاول که کشید از غم هجران بلبل\nتا سراپرده گل نعره‌زنان خواهد شد\nمژده ای دل که دگر باره بهار عشق آمد\nتا ز فیضش همه عالم گل و ریحان خواهد شد", meaning: "فال شما از تحولی بزرگ و تجدید حیات در عشق خبر می‌دهد. جهان پیر وجودتان دوباره جوان می‌شود و گل‌های عشق می‌شکفند.", category: "romantic" },
+        { verse: "ای شمع مجلس افروز از پرتو رخت\nدلهای ما بسوخت و تو بی‌اعتنا شدی\nرفتی و رفتنت ز دل ما نمی‌رود\nبرگشتی و بازآمدنت آرزوی ماست\nگفتم که بنالم چو ز هجران تو ای دوست\nگفتا که بنال ار چه ز هجران بنالی\nحافظ ز فراق تو چه نالد چه بنالد\nچون نیست کس او را که به فریاد رسدش", meaning: "فال شما از عشقی بی‌پاسخ و سوزناک حکایت دارد. اما ناامید نشوید. به زودی کسی پیدا می‌شود که به فریادتان برسد.", category: "romantic" },
+        { verse: "بیا که قصر امل سخت سست بنیاد است\nبیار باده که بنیاد عمر بر باد است\nغلام همت آنم که زیر چرخ کبود\nز هر چه رنگ تعلق پذیرد آزاد است\nبه می سجاده رنگین کن گرت پیر مغان گوید\nکه سالک بی‌خبر نبود ز راه و رسم منزلها\nبه بوی نافه‌ای کآخر صبا زان طره بگشاید\nز تاب جعد مشکینش چه خون افتاد در دلها", meaning: "فال شما به ناپایداری آرزوها و ضرورت رهایی از تعلقات اشاره دارد. نسیمی به زودی گره از کارتان می‌گشاید.", category: "romantic" },
+        { verse: "سینه‌ام را گنج پنهان کردی ای دوست\nدر دلم شوقی که می‌خواند مرا سوی تو\nدوش در خواب دیدم روی خوبت را\nکه ز هجرت گشته بودم بی‌سر و بی‌سامان\nچو برخاستم از خواب، دلم می‌کوفت\nکه مگر باز بینم آن رخ رخشان را\nبگشا پردهٔ راز، ای نگار زیبا\nکه دلم طاقت این هجر ندارد، بازآ", meaning: "فال شما از عشقی عمیق و پنهان حکایت دارد. به زودی فرصتی برای وصال پیش می‌آید و این شوق به آرامش تبدیل می‌شود.", category: "romantic" },
+        { verse: "یوسف گمگشته بازآید به کنعان غم مخور\nکلبه احزان شود روزی گلستان غم مخور\nای دل غمدیده حالت به شود دل بد مکن\nوین سر شوریده باز آید به سامان غم مخور\nگر بهار عمر باشد باز بر تخت چمن\nچتر گل در سر کشی ای مرغ خوشخوان غم مخور\nدور گردون گر دو روزی بر مراد ما نرفت\nدایماً یکسان نباشد حال دوران غم مخور", meaning: "فال شما بشارت‌دهندهٔ پایان دوران سخت و بازگشت شادی است. بهار عمرتان فرا می‌رسد و بر تخت چمن، چتر گل بر سر خواهید کشید.", category: "romantic" },
+        { verse: "به کوی عشق تو من عاقلانه می‌رفتم\nکنون از آن ره بی‌باک و بی‌پناه شدم\nچه کردی ای فلک بی‌رحم با دل زارم\nکه از جفای تو من بی‌دل و گناه شدم\nبه پیشگاه تو ای دلبر وفادارم\nچنان شدم که ز خود نیز بی‌خبر باشم\nاگرچه از غم عشقت پریش گشته‌ام، باز\nهنوز بر سر عهد و وفای خویش باشم", meaning: "فال شما از عشقی پرمخاطره می‌گوید. بر سر عهد خود هستید. به زودی پاداش این استقامت را می‌گیرید.", category: "romantic" },
+        { verse: "من اگر نیکم و گر بد تو برو خود را باش\nهر کسی آن درود عاقبت کار که کشت\nدر حق ما چه گنه بود که از بخت و جوانی\nبه غمت سوختم و عشق تو شد پیرم و ساخت\nتو مگر پرده بگیری و گر از غیرت حسن\nزان میان گم شوی و دیدهٔ ما باز ماند\nحافظ از جور تو شکوی به که می‌برد امروز\nکه دلش از غم و اندوه تو پرخون است و بس", meaning: "فال شما به قضاوت دیگران و وفاداری در عشق اشاره دارد. به زودی این وفاداری دیده می‌شود.", category: "romantic" },
+        { verse: "بلبل از فیض گل آموخت سخن ور نه نبود\nاین همه قندیل سخن که به پروانه زدند\nگل به باد آن دهد عمر و کام دل بجوی\nکه باغبان جهان را چو گل امید نیست\nنسیم صبح که بویی ز زلف یار آرد\nز جان و دل بفروشم به بو که در کار است\nاگر به هر سر مویی ز زلف یار رسد\nبه جای موی سرم گر دهند، سر نکنم", meaning: "فال شما از الهام‌گیری عشق و فداکاری در راه معشوق حکایت دارد. به زودی به آنچه می‌خواهید دست می‌یابید.", category: "romantic" },
+        { verse: "دوش در خواب دیدم که به من گفت نگار\nکه اگر عاشق مایی، غم فردا نخوری\nبرو و شاد بزی، کاین غم و اندوه جهان\nچو سرابی بود و هیچ نماند به سرانجام\nتو که در عشق ز غوغای رقیبان نرمی\nبه که بر یاد منی و دگران را نگری\nچو صبا بر سر کویش گذرم کرد، ببین\nکه ز هر گوشه‌ای آید ز درش بوی سلام", meaning: "فال شما از پیام آرامش‌بخش معشوق در خواب خبر می‌دهد. به زودی نشانه‌هایی از سوی یار دریافت می‌کنید که بوی سلام و آشتی دارد.", category: "romantic" },
+        // روزمره (۲۱ تا ۴۰)
+        { verse: "بنی آدم اعضای یک پیکرند\nکه در آفرینش ز یک گوهرند\nچو عضوی به درد آورد روزگار\nدگر عضوها را نماند قرار\nتو کز محنت دیگران بی‌غمی\nنشاید که نامت نهند آدمی\nاگر یک بصر را شود مبتلا\nبصرهای دیگر کند خون گریست\nز بی‌رحمی و ظلم و جور و ستم\nکنون خلق گریان و افغان چرا", meaning: "فال شما به اهمیت همدلی و انسانیت اشاره دارد. به زودی فرصتی برای کمک به دیگران پیش می‌آید.", category: "daily" },
+        { verse: "توانا بود هر که دانا بود\nز دانش دل پیر برنا بود\nبکوشید و دانش بیاموزید\nکه دانایی ارث پدر نیست\nبه دانایی از کس نیفتد شرف\nکه دانایی از فضل یزدان بود\nاگر دانشت را بیفزایی\nدل و جان خویش را بیارایی\nچو دانا شوی، پادشاه دلی\nبه تدبیر، گیتی مسخر کنی", meaning: "فال شما به قدرت دانایی و خرد اشاره دارد. فرصتی برای یادگیری پیش می‌آید.", category: "daily" },
+        { verse: "کرم کن به جای که دنیا نیرزد\nبه آن که دلی را ز خود بیازاری\nجهان ای پسر بر طریق گذر است\nمشو غره بر آنچه از تو گذر کرد\nبه بازی مگیر این جهان گذران\nکه بازی نیرزد به چندین خطرها\nاگر تاج داری و گر تیغ و گر زرق\nاز این هر سه با مرگ نبود ستیزه\nنکوکاری و راستی پیشه کن\nکه این است سرمایه روز رستاخیز", meaning: "فال شما به گذرایی دنیا و اهمیت مهربانی اشاره دارد. نیکوکاری پیشه کنید.", category: "daily" },
+        { verse: "از دی که گذشت هیچ از او یاد مکن\nفردا که نیامده است فریاد مکن\nبر نامده و گذشته بنیاد مکن\nحالی خوش باش و عمر بر باد مکن\nاین چرخ و فلک با همه زیب و هنرش\nیک لحظه نیرزد به فسون و فتنش\nمی نوش و سر از دور زمان پیچ که چرخ\nدردی دهدت گرچه دهی گنج و کفن\nامروز ترا دسترسی نیست به فردا\nتا کی به امید فردا باشی و ز غم دروا", meaning: "فال شما به اهمیت زندگی در لحظهٔ حال اشاره دارد. امروز را دریابید.", category: "daily" },
+        { verse: "خرد بهتر از هر چه ایزدت داد\nستایش خرد را به از راه داد\nبپرسیدم از عقل کای روشنایی\nچه باشد در این ره مرا رهنمایی\nبگفتا که دانش رهایی دهد\nز بند غم و درد و تنهایی دهد\nنکو گفت دانا که دیوانگی است\nبه غم ساختن عین بیگانگی است\nز دانش روان را توانگر کنید\nدل خویش را زنده و برتر کنید", meaning: "فال شما بر اهمیت خرد و دانایی تأکید دارد. با تصمیمی مهم روبرو می‌شوید.", category: "daily" },
+        { verse: "اگر ز خلق طلب قدر و منزلت داری\nبه قدر خویش فروتن نشین و بالا باش\nبزرگی از تو ندارد فروتنی به کسی\nکه گندم از تو ندارد فزونی از ارزن\nتواضع آن را بود نیک و ارجمند\nکه خاک پای کسان باشد و فروتنند\nبزرگ باش و میاسا ز رنج و کوشش خویش\nکه نیکبختی آن راست کوشش است و روش\nمکن تکبر بر کس که آن تو را\nکند خوار و بی‌مقدار در دیده‌ها", meaning: "فال شما به اهمیت فروتنی اشاره دارد. فروتنی دلها را جذب می‌کند.", category: "daily" },
+        { verse: "ز روز گذر کرده یادآوری\nکه بر بی‌گناهان مکن داوری\nبه نرمی توان عاقبت پیر شد\nدرشتی کند مرد را خوار و رد\nاگر تندخویی کنی با کسی\nپشیمان شوی عاقبت چون رسی\nچو خواهی که بر کس نیاید گزند\nمکن آنچه بر خود نیاری پسند\nتوانگر به بازار و درویش به کوی\nهمه بندهٔ یک خداوند اوی\nنکو گوی و نیکو شنو و نیک باش\nکه تا بر تو خندد جهان پر ز کاش", meaning: "فال شما به لزوم نرمخویی و پرهیز از قضاوت دیگران اشاره دارد.", category: "daily" },
+        { verse: "به راه بادیه رفتن به از نشستن باطل\nکه گر مراد نیابم به قدر وسع بکوشم\nاگر چه هیچم و بی‌قدر و بی‌مقدارم\nبه پیش اهل کرم خوار نیست این کارم\nچو بخت یار نباشد طلب ز حد مگذر\nکه می‌کند طلب از حد گذشته بی‌آزارم\nبکوش و جهد نما هرچه بیش بتوانی\nکه کوشش است دلیل بزرگ مردانی\nمن آنچه شرط بلاغ است با تو می‌گویم\nتو خواه از سخنم پند گیر و خواه ملال", meaning: "فال شما به ارزش تلاش و کوشش اشاره دارد. دست از تلاش برندارید.", category: "daily" },
+        { verse: "چو دخلت نیست خرج آهسته‌تر کن\nکه ملاحان سرودی می‌سرایند\nاگر فردوس بر روی زمین است\nهمین است و همین است و همین است\nبه نان خشک قناعت کن که گر هیچ\nطمع کمتر کنی راحت فزون است\nمیندیش از غم فردا که امروز\nغم امروز تو را از پا درانداز\nچو دانی کاین جهان بر کس نماند\nچرا باید چنین چندین تپیدن", meaning: "فال شما به صرفه‌جویی و قناعت اشاره دارد. آرامش در سادگی است.", category: "daily" },
+        { verse: "تکیه بر جای بزرگان نتوان زد به گزاف\nمگر اسباب بزرگی همه آماده کنی\nچو خواهی که نامت برآید بلند\nنخست از خرد بایدت بهره‌مند\nبزرگی به دانش بود نی به مال\nکه دانا بود شاه بی‌انفال\nاگر صد هنر داری و بی‌خردی\nچو خرمن به بادی به یک شب بری\nبه تدبیر و اندیشه کن کار خویش\nکه بی‌فکر کردن بود کار نیش", meaning: "فال شما به ضرورت شایستگی برای رسیدن به جایگاه‌های بزرگ اشاره دارد.", category: "daily" },
+        { verse: "درخت دوستی بنشان که کام دل به بار آرد\nنهال دشمنی برکن که رنج بی‌شمار آرد\nبه پای دوستان رفتن به از پیمودن راهی\nکه از دشمن توانی رست اگر صد رهگذار آرد\nاگر با دیگران باشی چو با خود مهربان باشی\nکه هر کس آنچه کارد، عاقبت روزی برآرد\nمکن نیکی به امید عوض کاین طبع دون است\nکه نیکی کردن از بهر خدا اجر بی‌شمار آرد", meaning: "فال شما به اهمیت دوستی اشاره دارد. نهال دوستی بکارید.", category: "daily" },
+        { verse: "مباش در پی آزار و هر چه خواهی کن\nکه در شریعت ما غیر از این گناهی نیست\nاگر به خانهٔ ما راه نیست، حاجت نیست\nکه ما نه مرد کمندیم و نی اسیر کمند\nبسا کسا که ز ما یاد می‌کند به دعا\nبسا کسا که ز ما می‌برد به غیبت گند\nچو ما ز خلق جهان بی‌نیاز و آزادیم\nز ما چه غیبت و چه تهمت و چه ریشخند", meaning: "فال شما به اصل «آزار نرساندن به دیگران» تأکید دارد.", category: "daily" },
+        { verse: "وقت را غنیمت دان آنقدر که بتوانی\nحاصل عمر است این دم که کنون داری\nتا کی به تمنای وصال تو یگانه\nاشک است که جاری‌ست ز چشمم چو سحابی\nایام جوانی به سر آمد و ندانم\nکاین عمر چگونه گذشت از بر من\nدریاب کنون وقت مرا کاین همه فرصت\nچون ابر گذران است و نمی‌ماند باقی", meaning: "فال شما به گذرایی عمر و ارزش لحظات حال اشاره دارد.", category: "daily" },
+        { verse: "یکی قطره باران ز ابری چکید\nخجل شد چو پهنای دریا بدید\nکه جایی که دریاست من کیستم\nگر او هست حقا که من نیستم\nچو خود را به چشم حقارت بدید\nصدف در کنارش به جان پرورید\nسپهرش به جایی رسانید کار\nکه شد نامور لؤلؤ شاهوار\nبلندی از آن یافت کو پست شد\nدر نیستی کوفت تا هست شد", meaning: "فال شما به اهمیت فروتنی اشاره دارد. آن که خود را پست کرد، بلندمرتبه شد.", category: "daily" },
+        { verse: "هر که را زر در ترازو است زور در بازو است\nسیم سیمای سعادت به زر و زیور نیست\nبه زر و زیور دنیا مشو غره که دنیا\nچو خوابی گذرد، زر و زیور به سر نیست\nاگر پنجهٔ زرین داری به دست\nچو نادان بود، پشه‌ای داردت پست\nتو را گر زری هست، در دل مبر\nکه چون زر برفت، آبرو می‌برد\nبه مردی کمر بند و آزاده باش\nکه آزادگان را جهان است کاش", meaning: "فال شما به ناپایداری ثروت و ارزش آزادگی اشاره دارد.", category: "daily" },
+        { verse: "درخت وجود تو بارور شود\nبه شرطی که با دیگران مهربان باشی\nچو از مهر ورزی گشاید دلت\nز کینه وری بسته ماند دلت\nاگر نیک باشی و نیکو کنی\nز کیهان همه نیکویی بشنوی\nدرختی که بار آورد میوه‌ای\nز سنگ و ز آسیب ماند در امان\nز مردم گریزی، ز غم بگدازی\nچو با خلق پیوندی، از غم رهی", meaning: "فال شما به قدرت مهربانی اشاره دارد. با مهرورزی دلتان گشوده می‌شود.", category: "daily" },
+        { verse: "به راه بادیه رفتن به از نشستن باطل\nکه گر مراد نیابم به قدر وسع بکوشم\nاگر چه هیچم و بی‌قدر و بی‌مقدارم\nبه پیش اهل کرم خوار نیست این کارم\nچو بخت یار نباشد طلب ز حد مگذر\nکه می‌کند طلب از حد گذشته بی‌آزارم\nبکوش و جهد نما هرچه بیش بتوانی\nکه کوشش است دلیل بزرگ مردانی", meaning: "فال شما به ارزش تلاش اشاره دارد. کوشش نشانهٔ بزرگ‌مردی است.", category: "daily" },
+        { verse: "چو دخلت نیست خرج آهسته‌تر کن\nکه ملاحان سرودی می‌سرایند\nاگر فردوس بر روی زمین است\nهمین است و همین است و همین است\nبه نان خشک قناعت کن که گر هیچ\nطمع کمتر کنی راحت فزون است\nمیندیش از غم فردا که امروز\nغم امروز تو را از پا درانداز\nجهان بر کس نماند، خوش برآسا\nکه از بهر تو نگذارند دنیا", meaning: "فال شما به صرفه‌جویی و قناعت اشاره دارد. آرامش در سادگی است.", category: "daily" },
+        { verse: "تکیه بر جای بزرگان نتوان زد به گزاف\nمگر اسباب بزرگی همه آماده کنی\nچو خواهی که نامت برآید بلند\nنخست از خرد بایدت بهره‌مند\nبزرگی به دانش بود نی به مال\nکه دانا بود شاه بی‌انفال\nاگر صد هنر داری و بی‌خردی\nچو خرمن به بادی به یک شب بری\nبه تدبیر و اندیشه کن کار خویش\nکه بی‌فکر کردن بود کار نیش", meaning: "فال شما به ضرورت شایستگی برای رسیدن به جایگاه‌های بزرگ اشاره دارد.", category: "daily" },
+        { verse: "چو ایران نباشد تن من مباد\nبدین بوم و بر زنده یک تن مباد\nهمه سر به سر تن به کشتن دهیم\nبه از آنکه کشور به دشمن دهیم\nدریغ است ایران که ویران شود\nکنام پلنگان و شیران شود\nچو خواهد که ویران شود بوم و بر\nشود تاج و تختی چنین زیر و زبر\nز بیگانگان بر سر آید مگر\nکه ایرانیان را نباشد پدر\nهمه رایتان سبز و خنجر به دست\nسزد گر بسازیم پیکار مست", meaning: "فال شما به عشق به وطن و هویت ملی اشاره دارد. از ارزش‌هایتان دفاع کنید.", category: "daily" }
+    ];
+
+    // ========== کدهای اجرایی ==========
+    let currentCategory = null;
+    let history = JSON.parse(localStorage.getItem('falHistory')) || [];
+
+    function showStep(step) {
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step3').style.display = 'none';
+        document.getElementById('step4').style.display = 'none';
+        if (step === 1) document.getElementById('step1').style.display = 'block';
+        else if (step === 2) document.getElementById('step2').style.display = 'block';
+        else if (step === 3) document.getElementById('step3').style.display = 'block';
+        else if (step === 4) document.getElementById('step4').style.display = 'block';
+    }
+
+    document.getElementById('newFalBtn').addEventListener('click', ()=> showStep(2));
+    document.getElementById('backBtn1').addEventListener('click', ()=> showStep(1));
+    document.getElementById('backBtn2').addEventListener('click', ()=> showStep(2));
+    document.getElementById('homeBtn').addEventListener('click', ()=> showStep(1));
+    document.getElementById('newSearchBtn').addEventListener('click', ()=> showStep(1));
+
+    function getRandomPoem(category) {
+        const filtered = poems.filter(p => p.category === category);
+        return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    document.getElementById('romanticBtn').addEventListener('click', ()=>{
+        currentCategory = 'romantic';
+        const random = getRandomPoem('romantic');
+        document.getElementById('verseHint').textContent = '✨ ' + random.verse.split('\n')[0] + '...';
+        document.getElementById('verseHint').dataset.poem = random.verse;
+        document.getElementById('verseHint').dataset.meaning = random.meaning;
+        showStep(3);
+    });
+    document.getElementById('dailyBtn').addEventListener('click', ()=>{
+        currentCategory = 'daily';
+        const random = getRandomPoem('daily');
+        document.getElementById('verseHint').textContent = '🌿 ' + random.verse.split('\n')[0] + '...';
+        document.getElementById('verseHint').dataset.poem = random.verse;
+        document.getElementById('verseHint').dataset.meaning = random.meaning;
+        showStep(3);
+    });
+
+    document.getElementById('revealBtn').addEventListener('click', ()=>{
+        const poem = document.getElementById('verseHint').dataset.poem;
+        const meaning = document.getElementById('verseHint').dataset.meaning;
+        document.getElementById('poemDisplay').textContent = poem;
+        document.getElementById('meaningDisplay').textContent = meaning;
+        history.push({ poem, meaning, category: currentCategory, date: new Date().toLocaleDateString('fa-IR') });
+        localStorage.setItem('falHistory', JSON.stringify(history));
+        showStep(4);
+    });
+
+    document.getElementById('historyBtn').addEventListener('click', ()=>{
+        const list = document.getElementById('historyList');
+        list.innerHTML = history.length === 0 ? '<p>هنوز فالی نگرفته‌اید.</p>' :
+            history.map((item, idx) => `<div class="history-item"><strong>فال ${idx+1}:</strong> ${item.poem.split('\n')[0]}...<br><small>${item.date}</small></div>`).join('');
+        document.getElementById('historyModal').classList.add('active');
+    });
+    document.getElementById('closeModalBtn').addEventListener('click', ()=>{
+        document.getElementById('historyModal').classList.remove('active');
+    });
+
+    // ذرات طلایی
+    const particlesContainer = document.getElementById('particlesContainer');
+    for (let i = 0; i < 25; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 6 + 3;
+        p.style.width = size + 'px'; p.style.height = size + 'px';
+        p.style.top = Math.random() * 100 + '%'; p.style.left = Math.random() * 100 + '%';
+        p.style.animationDelay = Math.random() * 8 + 's';
+        particlesContainer.appendChild(p);
+    }
+
+    showStep(1);
+</script>
 </body>
 </html>
